@@ -6,14 +6,6 @@
 #include "../lib.h"
 
 int main() {
-    // Test `StateIter::Successor()`
-    // Verifies that it generates all successors without duplicates.
-    // Strategy:
-    // - Calculate the expected number of successors (n_blanks * 3)
-    // - Use an `unordered_set` to ensure that there are no duplicates
-    // - Check that the size of the set is equal to the expected number of
-    //   successors
-
     std::string filenames[] = {"sample", "sample9"};
     for (auto filename : filenames) {
         Problem problem("tests/" + filename);

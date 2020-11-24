@@ -1,38 +1,43 @@
 # Sudoku solver
 
 ## Hill-climbing algorithm
-- Generate random initial state
-- Generate successors
-- Pick best successor
-- If we're at a local min then start over with a new random state
-- We're done when we have solved the board
 
-Pseudocode from textbook:
+- Solves 4x4 very quickly
+- Can't solve 9x9 within a feasible time
+
+### Building
+
 ```
-function HillClimbing(problem) returns a state that is a local maximum
-  current ← MakeNode(problem.initial_state)
-  loop do
-    neighbor ← a highest-valued successor of current
-    if neighbor.value <= current.value then return current.state
-current ← neighbor
+make -j4
 ```
 
-### Problem representation
-Flat vector of fixed numbers
+### Usage
 
-### State representation
-Flat vector of numbers
+```
+./TestHarness tests/sample
+```
 
-### Successor function
-All possible states by changing any single number on the board
+Output format is `<state> <eval> / <iter>`
 
-### Evaluation function
-Total number of conflicts on the board
+### Testing
 
-### Misc
-At each iteration, print state, score, iteration number
+#### TestSuccessor
+```
+./TestSuccessor
+```
+- Test `StateIter::Successor()`
+- Verifies that it generates all successors without duplicates
+- Testing strategy:
+  - Calculate the expected number of successors: `n_blanks * (n - 1)`
+  - Use an `unordered_set` to ensure that there are no duplicates
+  - Check that the size of the set is equal to the expected number of
+    successors
 
-## Genetic algorithm
-Who knows
-
-print *(ans.data._M_impl._M_start)@ans.data.size()
+#### TestEval
+```
+./TestEval
+```
+- Test `State::Eval()`
+- Verify that the number of conflicts are being counted properly
+- Testing strategy:
+  - Manually count conflicts for different boards and compare with `Eval()`
