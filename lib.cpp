@@ -455,25 +455,25 @@ std::tuple<bool, State> Problem::Genetic(
                 threads.push_back(
                     std::thread(
                         [
-                        this,
-                        &population,
-                        &children,
-                        &parent_dist,
-                        start, end,
-                        mutate_prob,
-                        type
-                        ] () mutable {
-                        this->ReproduceChunk(
-                            population,
-                            children,
-                            parent_dist,
+                            this,
+                            &population,
+                            &children,
+                            &parent_dist,
                             start, end,
                             mutate_prob,
                             type
-                        );
+                        ] () mutable {
+                            this->ReproduceChunk(
+                                population,
+                                children,
+                                parent_dist,
+                                start, end,
+                                mutate_prob,
+                                type
+                            );
                         }
                     )
-                    );
+                );
             }
 
             for (auto& t : threads) t.join();
