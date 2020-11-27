@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <fstream>
 #include <unordered_set>
+#include <algorithm>
+#include <thread>
 #include <limits.h>
 #include "lib.h"
 
@@ -28,10 +30,11 @@ Problem::Problem(std::string filename) {
     std::string line;
     getline(f, line);
 
-    size_t n = std::stoi(line);
+    size_t n = std::stoul(line);
     this->n = n;
     this->fixed = std::vector<int>(n * n);
-    this->rand_dist = std::uniform_int_distribution<int>(1, n);
+    this->cell_value_dist = std::uniform_int_distribution<int>(1, n);
+    this->n_fixed = 0;
 
     for (size_t row = 0; row < n; ++row) {
         getline(f, line);
@@ -39,6 +42,7 @@ Problem::Problem(std::string filename) {
             char c = line[col];
             if (c != '*') {
                 this->fixed[Index(row, col, n)] = c - '0';
+                this->n_fixed++;
             }
         }
     }
@@ -94,10 +98,11 @@ std::random_device rand_dev;
 std::mt19937 rand_gen(rand_dev());
 
 State Problem::RandomState() {
+    rand_gen.seed(rand_dev());
     State ans(this);
     for (size_t i = 0; i < fixed.size(); ++i) {
         if (!IsFixed(i)) {
-            ans.data[i] = rand_dist(rand_gen);
+            ans.data[i] = cell_value_dist(rand_gen);
         }
     }
     return ans;
@@ -196,4 +201,281 @@ State Problem::HillClimber(State state) {
     }
 
     return state;
+}
+
+State Problem::OnePointCrossover(State p1, State p2) {
+    rand_gen.seed(rand_dev());
+    auto crossover_dist = std::uniform_int_distribution<size_t>(
+        0, p1.data.size() - 1
+    );
+    auto crossover_rand = std::bind(crossover_dist, rand_gen);
+    size_t crossover_point = crossover_rand();
+
+    State child = p1;
+    for (size_t i = crossover_point; i < p2.data.size(); ++i) {
+        child.data[i] = p2.data[i];
+    }
+
+    return child;
+}
+
+State Problem::NPointCrossover(State p1, State p2) {
+    std::vector<size_t> crossover_rand(p1.data.size());
+    for (size_t i = 0; i < crossover_rand.size(); ++i) {
+        crossover_rand[i] = i;
+    }
+    std::random_shuffle(crossover_rand.begin(), crossover_rand.end());
+
+    size_t n_crossovers = p1.problem->n;
+    std::vector<size_t> crossovers(
+        crossover_rand.begin(),
+        crossover_rand.begin() + n_crossovers
+    );
+    std::sort(crossovers.begin(), crossovers.end());
+
+    State child = p1;
+
+    for (size_t i = 1; i < crossovers.size(); i += 2) {
+        size_t start = crossovers[i]; // Inclusive
+        size_t end; // Exclusive
+        if (i == crossovers.size() - 1) {
+            // Last interval, crossover until the end
+            end = p1.data.size();
+        } else {
+            end = crossovers[i + 1];
+        }
+
+        for (size_t j = start; j < end; ++j) {
+            child.data[i] = p2.data[i];
+        }
+    }
+
+    return child;
+}
+
+State Problem::UniformCrossover(State p1, State p2) {
+    rand_gen.seed(rand_dev());
+    std::uniform_int_distribution<int> uniform_dist(0, 1);
+    auto uniform_rand = std::bind(uniform_dist, rand_gen);
+
+    State child = p1;
+    for (size_t i = 0; i < child.data.size(); ++i) {
+        if (uniform_rand()) {
+            child.data[i] = p2.data[i];
+        }
+    }
+
+    return child;
+}
+
+State Problem::Reproduce(State p1, State p2, CrossoverType type) {
+    switch (type) {
+        case CrossoverType::OnePoint:
+            return OnePointCrossover(p1, p2);
+        case CrossoverType::NPoint:
+            return NPointCrossover(p1, p2);
+        case CrossoverType::Uniform:
+            return UniformCrossover(p1, p2);
+        default:
+            throw std::invalid_argument("Invalid crossover type");
+    }
+}
+
+void Problem::Mutate(State& s) {
+    rand_gen.seed(rand_dev());
+
+    auto mutation_dist = std::uniform_int_distribution<size_t>(
+        0, s.data.size() - 1
+    );
+    auto mutation_rand = std::bind(mutation_dist, rand_gen);
+
+    size_t point1 = mutation_rand();
+    while (IsFixed(point1)) {
+        point1 = mutation_rand();
+    }
+
+    size_t point2 = mutation_rand();
+    while (IsFixed(point2) || point1 == point2) {
+        point2 = mutation_rand();
+    }
+
+    std::swap(s.data[point1], s.data[point2]);
+}
+
+void Problem::ReproduceChunk(
+    std::vector<State>& population,
+    std::vector<State>& children,
+    std::discrete_distribution<int>& parent_dist,
+    size_t start, size_t end,
+    double mutate_prob,
+    CrossoverType type
+) {
+    rand_gen.seed(rand_dev());
+
+    std::uniform_real_distribution<double> mutation_dist(0.0, 1.0);
+    auto mutation_rand = std::bind(mutation_dist, rand_gen);
+    auto parent_rand = std::bind(parent_dist, rand_gen);
+
+    for (size_t i = start; i < end; ++i) {
+        State parent1 = population[parent_rand()];
+        State parent2 = population[parent_rand()];
+        State child = Reproduce(parent1, parent2, type);
+        if (mutation_rand() < mutate_prob) {
+            Mutate(child);
+        }
+        children[i] = child;
+    }
+}
+
+void Problem::EvalGeneticChunk(
+    std::vector<State>& population,
+    std::vector<int>& parent_probs,
+    size_t start, size_t end
+) {
+    for (size_t i = start; i < end; ++i) {
+        parent_probs[i] = EvalGenetic(population[i]);
+    }
+}
+
+std::tuple<bool, State> Problem::Genetic(
+    size_t size,
+    double mutate_prob,
+    int check_every,
+    double terminate_epsilon,
+    CrossoverType type,
+    size_t n_threads
+) {
+
+    std::vector<State> population(size);
+    std::vector<State> children(size);
+    std::vector<int> parent_probs(size);
+
+    for (size_t i = 0; i < size; ++i) {
+        population[i] = RandomState();
+    }
+
+    State best_state_all;
+    best_state_all.eval = INT_MIN;
+
+    size_t iter = 0;
+
+    while (true) {
+        State best_state;
+        best_state.eval = INT_MIN;
+
+        size_t thread_size = size / n_threads;
+
+        {
+            std::vector<std::thread> threads;
+
+            for (size_t thread_i = 0; thread_i < n_threads; ++thread_i) {
+                size_t start = thread_i * thread_size; // Inclusive
+                size_t end; // Exclusive
+                if (thread_i == n_threads - 1) {
+                    end = size;
+                } else {
+                    end = (thread_i + 1) * thread_size;
+                }
+
+                threads.push_back(
+                    std::thread(
+                        [
+                        this,
+                        &population,
+                        &parent_probs,
+                        start, end
+                        ] () mutable {
+                            this->EvalGeneticChunk(
+                                population,
+                                parent_probs,
+                                start, end
+                            );
+                        }
+                    )
+                );
+            }
+
+            for (auto& t : threads) t.join();
+        }
+
+        for (size_t i = 0; i < population.size(); ++i) {
+            if (EvalGenetic(population[i]) > EvalGenetic(best_state)) {
+                best_state = population[i];
+            }
+        }
+
+        if (EvalGenetic(best_state) == GoalEvalGenetic()) {
+            return std::tuple<bool, State>(true, best_state);
+        }
+
+        for (int x : best_state.data) {
+            std::cout << x << " ";
+        }
+
+        std::cout <<
+            std::right << std::setw(3) <<
+            EvalGenetic(best_state) << " / " <<
+            GoalEvalGenetic() << " / " <<
+            iter << std::endl;
+
+        if (
+            iter % check_every == 0 &&
+            iter > 0 &&
+            abs(
+                EvalGenetic(best_state) - EvalGenetic(best_state_all)
+            ) <= terminate_epsilon
+        ) {
+            return std::tuple<bool, State>(false, best_state_all);
+        }
+
+        if (EvalGenetic(best_state) > EvalGenetic(best_state_all)) {
+            best_state_all = best_state;
+        }
+
+        std::discrete_distribution<int> parent_dist(
+            std::begin(parent_probs), std::end(parent_probs)
+        );
+
+        {
+            std::vector<std::thread> threads;
+
+            for (size_t thread_i = 0; thread_i < n_threads; ++thread_i) {
+                size_t start = thread_i * thread_size; // Inclusive
+                size_t end; // Exclusive
+                if (thread_i == n_threads - 1) {
+                    end = size;
+                } else {
+                    end = (thread_i + 1) * thread_size;
+                }
+
+                threads.push_back(
+                    std::thread(
+                        [
+                        this,
+                        &population,
+                        &children,
+                        &parent_dist,
+                        start, end,
+                        mutate_prob,
+                        type
+                        ] () mutable {
+                        this->ReproduceChunk(
+                            population,
+                            children,
+                            parent_dist,
+                            start, end,
+                            mutate_prob,
+                            type
+                        );
+                        }
+                    )
+                    );
+            }
+
+            for (auto& t : threads) t.join();
+        }
+
+        population = children;
+        iter++;
+    }
 }

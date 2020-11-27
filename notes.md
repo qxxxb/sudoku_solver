@@ -33,6 +33,20 @@ Total number of conflicts on the board
 At each iteration, print state, score, iteration number
 
 ## Genetic algorithm
-Who knows
+- Create a population (set of states)
+- Initialize with random states
+- Create a new population (same size as parent population)
+- Pick two random states from the parent population
+  - Reproduce to create a child
+  - Mutate child
+  - Add child to new population
+- Replace parent population with new population
 
-print *(ans.data._M_impl._M_start)@ans.data.size()
+### Reproduce
+- Cross-over
+  - Pick a random point
+  - Flip
+
+### Mutate
+- Pick a random cell
+- Mutate it

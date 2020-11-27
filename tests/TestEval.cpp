@@ -28,5 +28,7 @@ int main() {
         assert(eval == exp_eval);
     }
 
+    std::cout << "Pass" << std::endl;
+
     return 0;
 }

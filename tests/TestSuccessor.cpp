@@ -6,16 +6,18 @@
 #include "../lib.h"
 
 int main() {
-    std::string filenames[] = {"sample", "sample9"};
+    std::string filenames[] = {
+        "sample4",
+        "sample4_1",
+        "sample4_2",
+        "sample4_3",
+        "sample9"
+    };
     for (auto filename : filenames) {
         Problem problem("tests/" + filename);
         problem.Print();
 
-        size_t n_blanks = 0;
-        for (size_t i = 0; i < problem.fixed.size(); ++i) {
-            if (!problem.IsFixed(i)) n_blanks++;
-        }
-        size_t n_succs_exp = n_blanks * (problem.n - 1);
+        size_t n_succs_exp = problem.NBlanks() * (problem.n - 1);
 
         const size_t n_trials = 100;
         for (size_t trial = 0; trial < n_trials; ++trial) {

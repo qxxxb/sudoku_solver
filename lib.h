@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <unordered_set>
+#include <tuple>
 #include "optional.hpp"
 
 size_t Index(size_t row, size_t col, size_t n);
@@ -13,6 +14,7 @@ class Problem;
 struct State {
     Problem* problem;
     std::vector<int> data;
+    State() { };
     State(Problem* problem);
 
     bool operator ==(const State& other) const {
@@ -77,15 +79,57 @@ public:
 
 class Problem {
 private:
-    std::uniform_int_distribution<int> rand_dist;
+    std::uniform_int_distribution<int> cell_value_dist;
 public:
     size_t n;
     std::vector<int> fixed;
+    size_t n_fixed;
     Problem(std::string filename);
 
     void Print() { PrintBoard(fixed, n); }
-    bool IsFixed(size_t i) { return fixed[i] != 0; }
+    inline bool IsFixed(size_t i) { return fixed[i] != 0; }
+    inline size_t NBlanks() { return (n * n) - n_fixed; }
+    inline size_t MaxConflicts() { return NBlanks() * 3; }
 
     State RandomState();
     State HillClimber(State state);
+
+    void Mutate(State& s);
+
+    enum class CrossoverType {
+        OnePoint,
+        NPoint,
+        Uniform
+    };
+    State OnePointCrossover(State p1, State p2);
+    State NPointCrossover(State p1, State p2);
+    State UniformCrossover(State p1, State p2);
+    State Reproduce(State p1, State p2, CrossoverType type);
+
+    void EvalGeneticChunk(
+        std::vector<State>& population,
+        std::vector<int>& parent_probs,
+        size_t start, size_t end
+    );
+
+    void ReproduceChunk(
+        std::vector<State>& population,
+        std::vector<State>& children,
+        std::discrete_distribution<int>& parent_dist,
+        size_t start, size_t end,
+        double mutate_prob,
+        CrossoverType type
+    );
+
+    inline int GoalEvalGenetic() { return MaxConflicts(); }
+    inline int EvalGenetic(State s) { return MaxConflicts() - s.Eval(); }
+
+    std::tuple<bool, State> Genetic(
+        size_t size,
+        double mutate_prob,
+        int check_every,
+        double terminate_epsilon,
+        CrossoverType type,
+        size_t n_threads
+    );
 };
