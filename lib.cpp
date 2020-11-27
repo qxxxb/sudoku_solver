@@ -356,6 +356,8 @@ std::tuple<bool, State> Problem::Genetic(
     State best_state_all;
     best_state_all.eval = INT_MIN;
 
+    int prev_eval;
+
     size_t streak = 0;
     size_t iter = 0;
 
@@ -404,6 +406,13 @@ std::tuple<bool, State> Problem::Genetic(
             }
         }
 
+        if (abs(prev_eval - EvalGenetic(best_state)) <= terminate_epsilon) {
+            streak++;
+        } else {
+            streak = 0;
+        }
+        prev_eval = EvalGenetic(best_state);
+
         if (EvalGenetic(best_state) == GoalEvalGenetic()) {
             return std::tuple<bool, State>(true, best_state);
         }
@@ -416,24 +425,11 @@ std::tuple<bool, State> Problem::Genetic(
             std::right << std::setw(3) <<
             EvalGenetic(best_state) << " / " <<
             GoalEvalGenetic() << " / " <<
+            streak << " / " <<
             iter << std::endl;
 
-        if (
-            abs(
-                EvalGenetic(best_state) - EvalGenetic(best_state_all)
-            ) <= terminate_epsilon
-        ) {
-            streak++;
-        } else {
-            streak = 0;
-        }
-
         if (streak >= terminate_streak) {
-            for (size_t i = 0; i < size; ++i) {
-                population[i] = RandomState();
-            }
-            iter++;
-            continue;
+            return std::tuple<bool, State>(false, best_state_all);
         }
 
         if (EvalGenetic(best_state) > EvalGenetic(best_state_all)) {

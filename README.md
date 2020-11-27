@@ -53,16 +53,15 @@ Arguments:
 - `mutate_prob`
   - Probability of mutating any given child
 - `terminate_streak`
-  - If the best states of the last `terminate_streak` iterations have all had
-    the same evaluations within `terminate_epsilon` of the best state seen so
-    far, then stop.
+  - If `terminate_streak` number of iterations have been within
+    `terminate_epsilon` of the one before it, then stop
 - `crossover_type`
   - `0`: 1-point crossover
   - `1`: N-point crossover, where N is the number of rows on the board.
   - `2`: Uniform crossover
 
 For each population, the best state is selected and is printed like so:
-`<eval> / <goal_eval> / <iter>`
+`<eval> / <goal_eval> / <streak> / <iter>`
 
 If the algorithm fails, try running it again or tweaking the parameters.
 
@@ -86,7 +85,7 @@ Uniform crossover only works well with relatively high mutation rate.
 
 ### 9-Sudoku
 
-Takes about 5 minutes to solve.
+When I tested, it solved it twice within 6 minutes, then never again.
 ```
-./TestHarnessGenetic tests/sample9 2048 0.01 4096 0 0 8
+./TestHarnessGenetic tests/sample9 1024 0.01 256 0 0 8
 ```
