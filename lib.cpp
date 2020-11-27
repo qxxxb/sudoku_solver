@@ -345,7 +345,6 @@ std::tuple<bool, State> Problem::Genetic(
     CrossoverType type,
     size_t n_threads
 ) {
-
     std::vector<State> population(size);
     std::vector<State> children(size);
     std::vector<int> parent_probs(size);
