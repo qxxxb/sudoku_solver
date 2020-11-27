@@ -76,7 +76,7 @@ If the algorithm fails, try running it again or tweaking the parameters.
 ./TestHarnessGenetic tests/sample4 200 0.1 200 0 0 1
 ```
 
-N-point srossover only works well with a high mutation rate, but still takes
+N-point crossover only works well with a high mutation rate, but still takes
 longer than 1-point and uniform crossover.
 ```
 ./TestHarnessGenetic tests/sample4 200 0.25 200 0 1 1
