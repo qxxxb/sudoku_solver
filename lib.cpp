@@ -340,7 +340,7 @@ void Problem::EvalGeneticChunk(
 std::tuple<bool, State> Problem::Genetic(
     size_t size,
     double mutate_prob,
-    int check_every,
+    size_t terminate_streak,
     double terminate_epsilon,
     CrossoverType type,
     size_t n_threads
@@ -357,6 +357,7 @@ std::tuple<bool, State> Problem::Genetic(
     State best_state_all;
     best_state_all.eval = INT_MIN;
 
+    size_t streak = 0;
     size_t iter = 0;
 
     while (true) {
@@ -419,13 +420,21 @@ std::tuple<bool, State> Problem::Genetic(
             iter << std::endl;
 
         if (
-            iter % check_every == 0 &&
-            iter > 0 &&
             abs(
                 EvalGenetic(best_state) - EvalGenetic(best_state_all)
             ) <= terminate_epsilon
         ) {
-            return std::tuple<bool, State>(false, best_state_all);
+            streak++;
+        } else {
+            streak = 0;
+        }
+
+        if (streak >= terminate_streak) {
+            for (size_t i = 0; i < size; ++i) {
+                population[i] = RandomState();
+            }
+            iter++;
+            continue;
         }
 
         if (EvalGenetic(best_state) > EvalGenetic(best_state_all)) {

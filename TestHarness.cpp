@@ -12,8 +12,8 @@ int main(int argc, char *argv[]) {
 
     size_t population_size = std::stoul(argv[2]);
     double mutate_prob = std::stod(argv[3]);
-    size_t check_every = std::stoul(argv[4]);
-    int terminate_epsilon = std::stoi(argv[5]);
+    size_t terminate_streak = std::stoul(argv[4]);
+    size_t terminate_epsilon = std::stoul(argv[5]);
     auto type = (Problem::CrossoverType)std::stoi(argv[6]);
     size_t n_threads = std::stoul(argv[7]);
 #else
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     std::tie(is_goal, best_state) = problem.Genetic(
         population_size,
         mutate_prob,
-        check_every,
+        terminate_streak,
         terminate_epsilon,
         type,
         n_threads

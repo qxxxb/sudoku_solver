@@ -127,7 +127,7 @@ public:
     std::tuple<bool, State> Genetic(
         size_t size,
         double mutate_prob,
-        int check_every,
+        size_t terminate_streak,
         double terminate_epsilon,
         CrossoverType type,
         size_t n_threads

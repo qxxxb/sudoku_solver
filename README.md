@@ -46,16 +46,16 @@ Output format is `<state> <eval> / <iter>`
 
 ## Genetic algorithm usage
 ```
-./TestHarnessGenetic <file> <population_size> <mutate_prob> <check_every> <terminate_epsilon> <crossover_type> <n_threads>
+./TestHarnessGenetic <file> <population_size> <mutate_prob> <terminate_streak> <terminate_epsilon> <crossover_type> <n_threads>
 ```
 
 Arguments:
 - `mutate_prob`
   - Probability of mutating any given child
-- `check_every`
-  - Every `check_every` iterations, compare the best evaluation in the current
-    population to the best state seen so far. If their evaluations are within
-    `terminate_epsilon` of each other, then stop.
+- `terminate_streak`
+  - If the best states of the last `terminate_streak` iterations have all had
+    the same evaluations within `terminate_epsilon` of the best state seen so
+    far, then stop.
 - `crossover_type`
   - `0`: 1-point crossover
   - `1`: N-point crossover, where N is the number of rows on the board.
