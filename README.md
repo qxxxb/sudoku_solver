@@ -44,7 +44,11 @@ Output format is `<state> <eval> / <iter>`
 
 ---
 
-## Genetic algorithm usage
+## Genetic algorithm
+- Solves 4x4 slower than hill-climbing algorithm
+- Managed to solve 9x9 twice within 6 minutes, then never again
+
+### Usage
 ```
 ./TestHarnessGenetic <file> <population_size> <mutate_prob> <terminate_streak> <terminate_epsilon> <crossover_type> <n_threads>
 ```
@@ -61,11 +65,11 @@ Arguments:
   - `2`: Uniform crossover
 
 For each population, the best state is selected and is printed like so:
-`<eval> / <goal_eval> / <streak> / <iter>`
+`<state> <eval> / <goal_eval> / <streak> / <iter>`
 
 If the algorithm fails, try running it again or tweaking the parameters.
 
-### 4-Sudoku
+#### 4-Sudoku
 
 1-point crossover only works well with relatively high mutation rate.
 ```
@@ -83,9 +87,9 @@ Uniform crossover only works well with relatively high mutation rate.
 ./TestHarnessGenetic tests/sample4 200 0.1 200 0 2 1
 ```
 
-### 9-Sudoku
+#### 9-Sudoku
 
-When I tested, it solved it twice within 6 minutes, then never again.
+Note: this probably will not find the solution, but may find something close.
 ```
-./TestHarnessGenetic tests/sample9 1024 0.01 256 0 0 8
+./TestHarnessGenetic tests/sample9 1024 0.01 256 0 0 4
 ```
